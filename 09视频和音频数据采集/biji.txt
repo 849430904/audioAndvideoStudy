@@ -1,0 +1,110 @@
+
+
+
+Android音视频采集可以分为以下三步走:
+1.采集（视频、音频）-》采集摄像头、麦克风的数据 . 在Java层自己完成
+     视频采集：直接获取摄像头预览图像,以java为例
+		   
+		   	/**
+			 * 开始预览
+			 */
+			private void startPreview() {
+				try {
+					//SurfaceView初始化完成，开始相机预览
+					mCamera = Camera.open(videoParams.getCameraId());
+					mCamera.setPreviewDisplay(surfaceHolder);
+					//获取预览图像数据
+					buffers = new byte[videoParams.getWidth() * videoParams.getHeight() * 4];
+					mCamera.addCallbackBuffer(buffers);
+					mCamera.setPreviewCallbackWithBuffer(this);
+					
+					mCamera.startPreview();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			......
+			
+		   @Override
+			public void onPreviewFrame(byte[] data, Camera camera) {
+				if(mCamera != null){
+					mCamera.addCallbackBuffer(buffers);
+				}
+				
+				if(isPushing){
+					//回调函数中获取图像数据，然后给Native代码编码
+					pushNative.fireVideo(data);
+				}
+			}
+			
+			
+     音频采集：通过AudioRecord获取
+	    
+		    .....
+			public AudioPusher(AudioParam audioParam, PushNative pushNative) {
+				this.audioParam = audioParam;
+				this.pushNative = pushNative;
+				
+				//AudioFormat.CHANNEL_IN_MONO  单声道 
+				//AudioFormat.CHANNEL_IN_STEREO 立体声 ,   
+				int channelConfig = audioParam.getChannel() == 1 ? //如果有一个声道以上用立体声
+						AudioFormat.CHANNEL_IN_MONO : AudioFormat.CHANNEL_IN_STEREO; 
+						
+						
+				//最小缓冲区大小
+				minBufferSize = AudioRecord.getMinBufferSize(audioParam.getSampleRateInHz(), 
+															 channelConfig, 
+															 AudioFormat.ENCODING_PCM_16BIT);
+															 
+				audioRecord = new AudioRecord(AudioSource.MIC, //麦克风
+						audioParam.getSampleRateInHz(), //赫兹
+						channelConfig, //声道 (立体声、左前声....)
+						AudioFormat.ENCODING_PCM_16BIT,//
+						minBufferSize);
+			}
+			
+			//开始录音
+			@Override
+			public void startPush() {
+				isPushing = true;
+				//启动一个录音子线程
+				new Thread(new AudioRecordTask()).start();
+			}
+
+	
+		    ....
+			//子线程里面录音
+			class AudioRecordTask implements Runnable{
+
+				@Override
+				public void run() {
+					//开始录音
+					audioRecord.startRecording();
+					while(isPushing){
+						//通过AudioRecord不断读取音频数据
+						byte[] buffer = new byte[minBufferSize];
+						int len = audioRecord.read(buffer, 0, buffer.length);
+						if(len > 0){
+							//传给Native代码，进行音频编码
+							pushNative.fireAudio(buffer, len);
+						}
+					}
+				}
+				
+			}
+	 
+	 
+2.编码（H264-X264对视频编码、AAC-FAAC对音频编码). 用开源的库(X264 )
+   
+    编译X264脚本:
+	https://github.com/weizongwei5/auto_build_last_x264
+     
+
+
+3.推流（rtmp协议 rtmp-dumprtmp）。 用rtmp-dumprtmp库实现
+
+X264是遵循H264编码标准的函数库
+X264的下载地址：
+http://www.videolan.org/developers/x264.html
+

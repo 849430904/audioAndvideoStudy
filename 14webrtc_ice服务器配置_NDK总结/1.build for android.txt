@@ -1,0 +1,43 @@
+﻿
+
+笔记：
+
+如何编译webrtc for android？
+
+下载webrtc源码，地址：https://chromium.googlesource.com/external/webrtc.git
+1）翻墙不稳定
+2）购买美国的服务器
+
+
+步骤：
+#用这个脚本
+git clone https://github.com/pristineio/webrtc-build-scripts.git
+
+#source shell
+source android/build.sh
+
+#安装需要的依赖工具（5分钟）
+install_dependencies
+
+#下载webrtc源码（5个小时）
+get_webrtc
+
+#编译得到release版本so库（很小）（7个小时）
+export WEBRTC_DEBUG=false
+build_apprtc
+
+结果：
+libjingle_peerconnection_so.so
+jar包
+
+java源文件
+webrtc-build-scripts/android/webrtc/src/webrtc/examples/androidapp
+
+45.116.78.200
+
+
+ice测试
+https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/ 
+
+单独编译模块
+http://blog.csdn.net/chinabinlang/article/details/41867189

@@ -1,0 +1,59 @@
+﻿
+
+一‘环境
+sudo apt-get update
+sudo apt-get install libevent-dev
+sudo apt-get install libsqlite3-dev
+sudo apt-get install git
+sudo apt-get install sqlite
+
+二、编译和安装
+git clone https://github.com/coturn/coturn.git
+cd coturn
+./configure
+make
+sudo make install
+
+三、运行
+cd coturn/examples/etc
+sudo cp *server* /usr/local/bin
+cd /usr/local/bin
+sudo turnserver --syslog -a -L 外网IP -X 外网IP -E 外网IP -f --min-port=32355 --max-port=65535 --user=helloword:helloword -r helloword --cert=turn_server_cert.pem --pkey=turn_server_pkey.pem --log-file=stdout -v
+
+其中 ip地址换成你本机的ip地址即可  账号和密码都是 helloword
+
+
+修改apprtc网页源代码：
+/home/local/apprtc/out/app_engine 目录下
+修改：index_template.html
+
+
+找到： peerConnectionConfig: {"iceServers": [], "rtcpMuxPolicy": "require", "bundlePolicy": "max-bundle"},
+把里面的 iceservers修改成：
+peerConnectionConfig: {
+iceServers: [{"url":"turn:helloword@服务器IP地址:3478", "credential":"helloword"}]
+},
+
+https://tools.ietf.org/html/draft-uberti-behave-turn-rest-00#page-5
+ var servers = [{
+        credential: "turnPassword",
+        username: "turnUser",
+        urls: [
+          "turn:localhost:3478?transport=udp",
+          "turn:localhost:3478?transport=tcp"
+        ]
+    }];
+   var config = {"iceServers": servers };
+   var pc = new RTCPeerConnection(config);
+
+如果是内网需要映射如下端口：
+TCP 443
+TCP 3478-3479
+TCP 32355-65535
+UDP 3478-3479
+UDP 32355-65535
+
+端口段是在上面可以配置的，默认不用改，如果是外网就不用管
+
+
+turnserver --syslog -a -L 120.55.171.206 -X 1120.55.171.206 -E 120.55.171.206 -f --min-port=32355 --max-port=65535 --user=helloword:helloword -r helloword --cert=turn_server_cert.pem --pkey=turn_server_pkey.pem --log-file=stdout -v
